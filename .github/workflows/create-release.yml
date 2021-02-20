@@ -32,11 +32,13 @@ jobs:
         sudo mount -o loop efi.img efi-img
         sudo cp -r EFI efi-img/
         sudo umount efi-img
+        tar -zcvf efi.tar.gz EFI
 
     - name: Release efi.img
       run: |
         VERSION=`date +%Y-%m-%d`
         github-release release --user burmilla --repo os-uefi --tag ${VERSION} --pre-release
         github-release upload --user burmilla --repo os-uefi --tag ${VERSION} --file efi.img --name efi.img
+        github-release upload --user burmilla --repo os-uefi --tag ${VERSION} --file efi.tar.gz --name efi.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.OS_RELEASE_TOKEN }}
