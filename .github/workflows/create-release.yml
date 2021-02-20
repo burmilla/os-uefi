@@ -1,0 +1,42 @@
+name: release
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install github-release
+      run: |
+        sudo wget https://github.com/github-release/github-release/releases/download/v0.9.0/linux-amd64-github-release.bz2 -O /usr/local/bin/github-release.bz2
+        sudo bunzip2 /usr/local/bin/github-release.bz2
+        sudo chmod 0755 /usr/local/bin/github-release
+
+    - name: Install syslinux-efi
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y syslinux-efi
+
+    - name: Generate efi.img
+      run: |
+        mkdir -p EFI/BOOT
+        cp /usr/lib/SYSLINUX.EFI/efi64/syslinux.efi EFI/BOOT/BOOTX64.EFI
+        cp /usr/lib/syslinux/modules/efi64/ldlinux.e64 EFI/BOOT/LDLINUX.E64
+        dd if=/dev/zero of=efi.img bs=1M count=3
+        mkdosfs -n ESP efi.img
+        mkdir -p efi-img
+        sudo mount -o loop efi.img efi-img
+        sudo cp -r EFI efi-img/
+        sudo umount efi-img
+
+    - name: Release efi.img
+      run: |
+        VERSION=`date +%Y-%m-%d`
+        github-release release --user burmilla --repo os-uefi --tag ${VERSION} --pre-release
+        github-release upload --user burmilla --repo os-uefi --tag ${VERSION} --file efi.img --name efi.img
+      env:
+        GITHUB_TOKEN: ${{ secrets.OS_RELEASE_TOKEN }}
